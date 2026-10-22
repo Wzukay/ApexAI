@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APEX//AI — Circuit Architect &amp; Optimal Lap Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- ==================== STREAMLINED TOP HEADER BAR ==================== -->
+    <header class="top-header">
+      <div class="brand-block">
+        <div class="brand-logo">
+          <span class="logo-accent">APEX</span><span class="logo-slash">//</span><span class="logo-ai">AI</span>
+        </div>
+      </div>
+
+      <!-- Circuit Selector -->
+      <div class="header-circuit-controls">
+        <label class="micro-label" for="track-preset-select">CIRCUIT</label>
+        <select id="track-preset-select" class="pit-select">
+          <optgroup label="FIA Formula 1 Calendar">
+            <option value="spa_francorchamps" selected>🇧🇪 Spa-Francorchamps (Belgium — 7.0 km)</option>
+            <option value="monza_temple">🇮🇹 Autodromo Nazionale Monza (Italy — 5.8 km)</option>
+            <option value="silverstone_gp">🇬🇧 Silverstone GP Circuit (UK — 5.9 km)</option>
+            <option value="suzuka_figure">🇯🇵 Suzuka International Circuit (Japan — 5.8 km)</option>
+            <option value="monaco_harbor">🇲🇨 Circuit de Monaco (Monte Carlo — 3.3 km)</option>
+            <option value="bahrain_sakhir">🇧🇭 Bahrain International Circuit (Sakhir — 5.4 km)</option>
+            <option value="red_bull_ring">🇦🇹 Red Bull Ring (Spielberg — 4.3 km)</option>
+            <option value="interlagos_brazil">🇧🇷 Interlagos GP (São Paulo — 4.3 km)</option>
+          </optgroup>
+          <optgroup label="Custom &amp; Specialty Circuits">
+            <option value="grand_prix">🏁 Apex Autodrome GP (Test Circuit — 5.2 km)</option>
+            <option value="touge_drift">🇯🇵 Ebisu Drift &amp; Kart Arena (1.4 km)</option>
+            <option value="oval_roval">🇺🇸 Daytona Tri-Oval Roval (5.7 km)</option>
+            <option value="custom_blank">✎ Custom Draw (Blank Canvas)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Clean Headline Lap Time Banner -->
+      <div class="lap-time-banner">
+        <div class="banner-metric primary-lap">
+          <span class="metric-label">OPTIMAL LAP</span>
+          <span id="header-lap-time" class="metric-value lap-clock">1:28.420</span>
+        </div>
+        <div class="banner-divider"></div>
+        <div class="banner-metric">
+          <span class="metric-label">AI LINE GAIN</span>
+          <span id="header-ai-saved" class="metric-value delta-good">-3.42s</span>
+        </div>
+        <div class="banner-divider" id="ghost-delta-divider" style="display:none"></div>
+        <div class="banner-metric" id="ghost-delta-block" style="display:none">
+          <span class="metric-label">VS GHOST</span>
+          <span id="header-ghost-delta" class="metric-value delta-neutral">---</span>
+        </div>
+        <!-- Hidden sector elements kept for internal compatibility -->
+        <div style="display:none">
+          <span id="header-s1"></span>
+          <span id="header-s2"></span>
+          <span id="header-s3"></span>
+        </div>
+      </div>
+
+      <!-- Simulation & View Controls -->
+      <div class="header-sim-controls">
+        <button id="btn-watch-ai" class="pit-btn pit-btn-accent" title="Watch AI Progressive Racing Line Solver">
+          <span class="pulse-dot"></span>
+          <span>Optimize Line</span>
+        </button>
+        <button id="btn-play-pause" class="pit-btn pit-btn-primary active" title="Play / Pause Lap Simulation (Space)">
+          <span id="play-pause-icon">⏸</span>
+          <span id="play-pause-label">Pause</span>
+        </button>
+        <div class="sim-speed-group" role="group" aria-label="Simulation Speed">
+          <button class="speed-pill active" data-speed="1">1x</button>
+          <button class="speed-pill" data-speed="2">2x</button>
+          <button class="speed-pill" data-speed="4">4x</button>
+        </div>
+        <button id="btn-toggle-telemetry" class="pit-btn" title="Show/Hide Telemetry Graphs">
+          <span>📊 Telemetry</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================== MAIN WORKSPACE ==================== -->
+    <div class="workspace-grid">
+      <!-- ==================== LEFT SIDEBAR: TRACK BUILDER ==================== -->
+      <aside class="sidebar sidebar-left">
+        <!-- Track Editor Tools -->
+        <section class="panel-section">
+          <div class="section-header">
+            <span class="section-title">TRACK BUILDER</span>
+            <span class="section-badge" id="node-count-badge">16 NODES</span>
+          </div>
+          <div class="tool-grid">
+            <button class="tool-btn active" data-tool="select" title="Drag nodes to reshape track">
+              <span class="tool-icon">✥</span>
+              <span class="tool-text"><strong>Move Node</strong></span>
+            </button>
+            <button class="tool-btn" data-tool="add_spline" title="Click track to insert smooth curve node">
+              <span class="tool-icon">∿</span>
+              <span class="tool-text"><strong>Add Spline</strong></span>
+            </button>
+            <button class="tool-btn" data-tool="add_straight" title="Click track to insert straight segment vertex">
+              <span class="tool-icon">╱</span>
+              <span class="tool-text"><strong>Add Straight</strong></span>
+            </button>
+            <button class="tool-btn" data-tool="delete" title="Click node to delete">
+              <span class="tool-icon">✕</span>
+              <span class="tool-text"><strong>Delete</strong></span>
+            </button>
+          </div>
+          <button id="btn-blank-track" class="pit-btn pit-btn-warn full-width" style="margin-top:8px">
+            ✎ Draw New Track From Scratch
+          </button>
+        </section>
+
+        <!-- Weather & Wind Simulation Lab -->
+        <section class="panel-section weather-sim-panel" id="weather-sim-panel">
+          <div class="section-header">
+            <span class="section-title">WEATHER &amp; WIND SIM</span>
+            <button id="btn-weather-calm" class="pit-link-btn" title="Reset to calm 0 km/h wind and clear skies">Reset Calm</button>
+          </div>
+
+          <div class="weather-preset-row">
+            <button id="btn-weather-best" class="pit-btn pit-btn-sm weather-btn-best" title="Optimal headwind into corners, cool dense air &amp; 0 clouds">
+              ☀️ Best Conditions
+            </button>
+            <button id="btn-weather-worst" class="pit-btn pit-btn-sm weather-btn-worst" title="78 km/h gale cross/tailwind + 4 storm clouds over corners">
+              🌪️ Worst Storm
+            </button>
+          </div>
+
+          <div class="weather-sliders">
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="slider-wind-speed">Wind Speed</label>
+                <span id="val-wind-speed" class="slider-readout">0 km/h</span>
+              </div>
+              <input type="range" id="slider-wind-speed" min="0" max="120" step="1" value="0" />
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="slider-wind-dir" title="Drag slider or drag the Wind Compass on the canvas">Wind Direction</label>
+                <span id="val-wind-dir" class="slider-readout">0° E</span>
+              </div>
+              <input type="range" id="slider-wind-dir" min="0" max="360" step="1" value="0" />
+            </div>
+          </div>
+
+          <div class="cloud-controls-block">
+            <div class="cloud-header-row">
+              <span class="micro-label">CLOUD COVER</span>
+              <span class="section-badge badge-cyan" id="cloud-count-badge">0 CLOUDS</span>
+            </div>
+            <button id="btn-place-cloud" class="pit-btn pit-btn-sm full-width cloud-tool-btn" data-tool="place_cloud" title="Click canvas to place cloud, drag cloud to move, Right-click or Delete to remove">
+              ☁ Place / Move Clouds
+            </button>
+            <div class="cloud-btn-row">
+              <button id="btn-auto-clouds" class="pit-btn pit-btn-sm" title="Spawn a volumetric cloud cell over a circuit corner">+ Add Cloud Cell</button>
+              <button id="btn-clear-clouds" class="pit-btn pit-btn-sm" title="Clear all clouds from the circuit">Clear Clouds</button>
+            </div>
+          </div>
+
+          <!-- Localized Wet Zones (Rain / Puddles) -->
+          <div class="wet-controls-block">
+            <div class="cloud-header-row">
+              <span class="micro-label">LOCALIZED WET ZONES</span>
+              <span class="section-badge badge-cyan" id="wet-count-badge">0 WET ZONES</span>
+            </div>
+            <button id="btn-place-wet" class="pit-btn pit-btn-sm full-width wet-tool-btn" data-tool="place_wet" title="Click track to place a wet zone, drag to move, Right-click or Delete to remove">
+              💧 Place / Move Wet Zones
+            </button>
+            <div class="cloud-btn-row">
+              <button id="btn-auto-wet" class="pit-btn pit-btn-sm" title="Place a localized wet zone directly over a key corner of the circuit">+ Add Wet Corner</button>
+              <button id="btn-clear-wet" class="pit-btn pit-btn-sm" title="Clear all wet zones and dry the track">Dry Track</button>
+            </div>
+            <div class="slider-control" style="margin-top:4px">
+              <div class="slider-header">
+                <label for="slider-wet-intensity">Wet Zone Intensity</label>
+                <span id="val-wet-intensity" class="slider-readout">75% (Wet)</span>
+              </div>
+              <input type="range" id="slider-wet-intensity" min="10" max="100" step="5" value="75" />
+            </div>
+            <label class="pit-toggle" style="margin-top:6px">
+              <input type="checkbox" id="chk-show-dry-line" checked />
+              <span>Show Dry Line vs Wet Line</span>
+            </label>
+          </div>
+
+          <div class="stats-mini-grid weather-stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">AERO BALANCE</span>
+              <span id="stat-wind-balance" class="stat-val stat-val-compact">100% Stable</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">PEAK WIND</span>
+              <span id="stat-wind-effect" class="stat-val stat-val-compact">Calm (0 km/h)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Selected Node Inspector -->
+        <section class="panel-section node-inspector" id="node-inspector-panel">
+          <div class="section-header">
+            <span class="section-title">SELECTED NODE</span>
+            <span class="section-badge badge-cyan" id="inspector-node-id">NODE #1</span>
+          </div>
+          <div id="inspector-content" class="inspector-body">
+            <div class="segmented-toggle">
+              <button id="btn-node-spline" class="seg-btn active" data-mode="spline">∿ Spline</button>
+              <button id="btn-node-straight" class="seg-btn" data-mode="straight">╱ Straight</button>
+            </div>
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="slider-node-width">Track Width</label>
+                <span id="val-node-width" class="slider-readout">14.0 m</span>
+              </div>
+              <input type="range" id="slider-node-width" min="8" max="26" step="0.5" value="14" />
+            </div>
+            <div class="inspector-actions">
+              <button id="btn-apply-width-all" class="pit-btn pit-btn-sm">Apply to All</button>
+              <button id="btn-delete-selected-node" class="pit-btn pit-btn-sm pit-btn-danger">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Display & Map Options -->
+        <section class="panel-section">
+          <div class="section-header">
+            <span class="section-title">VIEW &amp; LINE OVERLAY</span>
+          </div>
+          <div class="control-group-vertical">
+            <select id="select-color-mode" class="pit-select full-width">
+              <option value="pedals">Color: Brake / Throttle Zones</option>
+              <option value="speed">Color: Speed Heatmap (km/h)</option>
+              <option value="grip">Color: Tire Grip Usage (%)</option>
+              <option value="gforce">Color: Cornering G-Force</option>
+              <option value="wetness">Color: Surface Wetness &amp; Grip</option>
+            </select>
+          </div>
+          <div class="toggle-list">
+            <label class="pit-toggle">
+              <input type="checkbox" id="chk-show-nodes" checked />
+              <span>Show Track Nodes</span>
+            </label>
+            <label class="pit-toggle">
+              <input type="checkbox" id="chk-show-apexes" />
+              <span>Show Corner Apex Speeds</span>
+            </label>
+            <label class="pit-toggle">
+              <input type="checkbox" id="chk-show-centerline" />
+              <span>Show Centerline Reference</span>
+            </label>
+          </div>
+          <div class="action-btn-grid" style="margin-top:10px">
+            <button id="btn-fit-camera" class="pit-btn pit-btn-sm">⛶ Fit View</button>
+            <button id="btn-reverse-track" class="pit-btn pit-btn-sm">⇄ Reverse</button>
+            <button id="btn-reset-track" class="pit-btn pit-btn-sm">↺ Reset</button>
+            <button id="btn-follow-cam" class="pit-btn pit-btn-sm">🎯 Follow Car</button>
+          </div>
+          <!-- Hidden extra buttons kept so JS bindings stay clean -->
+          <div style="display:none">
+            <button id="btn-smooth-track"></button>
+            <button id="btn-export-json"></button>
+            <button id="btn-import-json"></button>
+            <input type="file" id="input-import-json" accept=".json" />
+            <input type="checkbox" id="chk-show-ghost-line" checked />
+            <input type="checkbox" id="chk-show-vectors" />
+          </div>
+        </section>
+
+        <!-- Compact Circuit Summary -->
+        <section class="panel-section">
+          <div class="stats-mini-grid">
+            <div class="stat-box">
+              <span class="stat-label">LENGTH</span>
+              <span id="stat-track-length" class="stat-val">5,240 m</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">CORNERS</span>
+              <span id="stat-corner-count" class="stat-val">12</span>
+            </div>
+          </div>
+          <div style="display:none">
+            <span id="stat-longest-straight"></span>
+            <span id="stat-avg-width"></span>
+          </div>
+        </section>
+      </aside>
+
+      <!-- ==================== CENTER VIEWPORT: CANVAS & COLLAPSIBLE TELEMETRY ==================== -->
+      <main class="center-viewport">
+        <div class="track-canvas-container" id="track-viewport">
+          <canvas id="track-canvas"></canvas>
+
+          <!-- Minimal Custom Draw Banner (only shown when drawing a new track) -->
+          <div class="custom-draw-banner hidden" id="custom-draw-banner">
+            <span><strong>DRAW TRACK:</strong> Click canvas to place points (Hold <code>Shift</code> for Straight segments).</span>
+            <button id="btn-finish-draw" class="pit-btn pit-btn-sm pit-btn-primary">Finish Track</button>
+          </div>
+
+          <!-- Hidden verbose hint bar -->
+          <div id="hud-hint-bar" style="display:none">
+            <span id="active-tool-badge"></span>
+            <span id="hud-hint-text"></span>
+          </div>
+
+          <!-- Compact Top-Right Live Car Telemetry Pill -->
+          <div class="live-car-hud" id="live-car-hud">
+            <div class="hud-top-row">
+              <div class="hud-car-tag">
+                <span class="car-dot" id="hud-car-dot"></span>
+                <span id="hud-car-name">FORMULA 1</span>
+              </div>
+              <span class="hud-lap-timer" id="hud-current-lap-time">0:00.0</span>
+            </div>
+
+            <div class="hud-speed-block">
+              <div class="speed-digital">
+                <span id="hud-speed-kmh">284</span>
+                <small>KM/H</small>
+              </div>
+              <div class="gear-box" id="hud-gear">7</div>
+            </div>
+
+            <div class="hud-pedal-bars">
+              <div class="pedal-row">
+                <span class="pedal-label">THR</span>
+                <div class="pedal-track"><div class="pedal-fill thr-fill" id="hud-thr-bar"></div></div>
+                <span class="pedal-pct" id="hud-thr-val">100%</span>
+              </div>
+              <div class="pedal-row">
+                <span class="pedal-label">BRK</span>
+                <div class="pedal-track"><div class="pedal-fill brk-fill" id="hud-brk-bar"></div></div>
+                <span class="pedal-pct" id="hud-brk-val">0%</span>
+              </div>
+            </div>
+
+            <div class="hud-micro-grid">
+              <div class="hud-micro-cell">
+                <span>LAT</span>
+                <strong id="hud-lat-g">2.4G</strong>
+              </div>
+              <div class="hud-micro-cell">
+                <span>LONG</span>
+                <strong id="hud-lon-g">+0.8G</strong>
+              </div>
+            </div>
+            <!-- Hidden secondary HUD fields -->
+            <div style="display:none">
+              <div id="hud-rpm-fill"></div>
+              <strong id="hud-downforce"></strong>
+              <strong id="hud-slip"></strong>
+            </div>
+          </div>
+
+          <!-- Clean Bottom-Left Color Legend -->
+          <div class="hud-legend-bar" id="hud-legend-bar">
+            <span class="legend-item"><i class="dot dot-thr"></i> Throttle</span>
+            <span class="legend-item"><i class="dot dot-coast"></i> Turn-in</span>
+            <span class="legend-item"><i class="dot dot-brk"></i> Braking</span>
+          </div>
+        </div>
+
+        <!-- Collapsible Bottom Telemetry Dock (Hidden by default to reduce clutter) -->
+        <div class="telemetry-dock collapsed" id="telemetry-dock">
+          <div class="telemetry-chart-pane">
+            <div class="pane-header">
+              <span class="pane-title">SPEED &amp; PEDALS TELEMETRY</span>
+              <span class="pane-hint">Click graph to scrub</span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="telemetry-canvas"></canvas>
+            </div>
+          </div>
+          <div class="gg-chart-pane">
+            <div class="pane-header">
+              <span class="pane-title">G-G CIRCLE</span>
+              <span class="pane-badge" id="gg-max-badge">PEAK G</span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="gg-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ==================== RIGHT SIDEBAR: VEHICLE PRESETS & TUNING ==================== -->
+      <aside class="sidebar sidebar-right">
+        <!-- Vehicle Class Presets -->
+        <section class="panel-section">
+          <div class="section-header">
+            <span class="section-title">CAR PRESETS</span>
+            <span class="section-badge badge-red" id="active-car-category">FIA FORMULA 1</span>
+          </div>
+          <div class="car-preset-grid" id="car-preset-grid"></div>
+        </section>
+
+        <!-- Pirelli F1 Tire Compounds & Custom Tire Lab -->
+        <section class="panel-section tire-compound-section">
+          <div class="section-header">
+            <span class="section-title">PIRELLI TIRE COMPOUND</span>
+            <span class="section-badge badge-cyan" id="tire-rec-badge" title="Click to equip AI recommended compound">REC: C3 MED</span>
+          </div>
+          <div class="tire-preset-strip" id="tire-preset-strip">
+            <button class="tire-btn" data-tire="c1" style="--tire-color: #f8fafc" title="C1 Hard — White Sidewall (High durability, lower mechanical grip)">
+              <span class="tire-ring">C1</span>
+              <small class="tire-sub">HRD</small>
+            </button>
+            <button class="tire-btn" data-tire="c2" style="--tire-color: #cbd5e1" title="C2 Medium-Hard — White Sidewall">
+              <span class="tire-ring">C2</span>
+              <small class="tire-sub">M-H</small>
+            </button>
+            <button class="tire-btn active" data-tire="c3" style="--tire-color: #facc15" title="C3 Medium — Yellow Sidewall (Balanced baseline slick)">
+              <span class="tire-ring">C3</span>
+              <small class="tire-sub">MED</small>
+            </button>
+            <button class="tire-btn" data-tire="c4" style="--tire-color: #ef4444" title="C4 Soft — Red Sidewall (High mechanical grip)">
+              <span class="tire-ring">C4</span>
+              <small class="tire-sub">SFT</small>
+            </button>
+            <button class="tire-btn" data-tire="c5" style="--tire-color: #f43f5e" title="C5 Ultra-Soft Quali — Red Sidewall (Maximum peak dry grip)">
+              <span class="tire-ring">C5</span>
+              <small class="tire-sub">QUL</small>
+            </button>
+            <button class="tire-btn" data-tire="inter" style="--tire-color: #22c55e" title="Cinturato Intermediate — Green Sidewall (3.0 mm tread grooves for damp/wet patches)">
+              <span class="tire-ring">INT</span>
+              <small class="tire-sub">3mm</small>
+            </button>
+            <button class="tire-btn" data-tire="wet" style="--tire-color: #3b82f6" title="Cinturato Full Wet — Blue Sidewall (6.5 mm deep grooves for heavy standing water)">
+              <span class="tire-ring">WET</span>
+              <small class="tire-sub">6.5m</small>
+            </button>
+          </div>
+          <div class="tire-compound-desc" id="tire-compound-desc">
+            Pirelli P Zero C3 (Medium) • Dry Slick (0.0 mm tread)
+          </div>
+          <details class="advanced-tuning-details">
+            <summary>Custom Tire Construction &amp; Pressure</summary>
+            <div class="advanced-sliders-inner">
+              <div class="slider-control">
+                <div class="slider-header">
+                  <label for="param-tire-softness">Compound Softness</label>
+                  <span id="val-tire-softness" class="slider-readout">50% Medium</span>
+                </div>
+                <input type="range" id="param-tire-softness" min="0" max="100" step="1" value="50" />
+              </div>
+
+              <div class="slider-control">
+                <div class="slider-header">
+                  <label for="param-tire-tread">Tread Groove Depth</label>
+                  <span id="val-tire-tread" class="slider-readout">0.0 mm (Slick)</span>
+                </div>
+                <input type="range" id="param-tire-tread" min="0.0" max="8.0" step="0.5" value="0.0" />
+              </div>
+
+              <div class="slider-control">
+                <div class="slider-header">
+                  <label for="param-tire-pressure">Tire Pressure</label>
+                  <span id="val-tire-pressure" class="slider-readout">22.5 PSI</span>
+                </div>
+                <input type="range" id="param-tire-pressure" min="16.0" max="30.0" step="0.5" value="22.5" />
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <!-- Ghost Comparison Selector -->
+        <section class="panel-section">
+          <div class="section-header">
+            <span class="section-title">COMPARE VS GHOST CAR</span>
+            <span class="section-badge" id="ghost-status-badge">OFF</span>
+          </div>
+          <select id="select-ghost-car" class="pit-select full-width">
+            <option value="none" selected>None (Single Car)</option>
+            <option value="centerline">Same Car (Centerline Path)</option>
+            <option value="street">Stock Street Car (375 hp)</option>
+            <option value="drift">Pro Drift Spec (870 hp)</option>
+            <option value="gt3">GT3 Race Car (550 hp)</option>
+            <option value="lmp2">LMP2 Prototype (600 hp)</option>
+            <option value="wec">WEC Hypercar (700 hp)</option>
+            <option value="f1">Formula 1 Car (1000 hp)</option>
+            <option value="kart">Shifter Kart KZ1 (45 hp)</option>
+            <option value="timeattack">Unlimited Time Attack (1050 hp)</option>
+          </select>
+        </section>
+
+        <!-- Streamlined Car Physics Sliders -->
+        <section class="panel-section">
+          <div class="section-header">
+            <span class="section-title">CAR PARAMETERS</span>
+            <button id="btn-reset-car" class="pit-link-btn">Reset Defaults</button>
+          </div>
+
+          <div class="physics-sliders">
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="param-power">Engine Power</label>
+                <span id="val-power" class="slider-readout">745 kW (1000 HP)</span>
+              </div>
+              <input type="range" id="param-power" min="25" max="1100" step="5" value="745" />
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="param-mass">Vehicle Mass</label>
+                <span id="val-mass" class="slider-readout">798 kg</span>
+              </div>
+              <input type="range" id="param-mass" min="150" max="2000" step="5" value="798" />
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="param-mu">Tire Grip (μ)</label>
+                <span id="val-mu" class="slider-readout">2.35 μ</span>
+              </div>
+              <input type="range" id="param-mu" min="0.70" max="2.80" step="0.02" value="2.35" />
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="param-cl">Aero Downforce (C<sub>L</sub>)</label>
+                <span id="val-cl" class="slider-readout">4.20</span>
+              </div>
+              <input type="range" id="param-cl" min="0.00" max="5.00" step="0.05" value="4.20" />
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="param-cd">Aero Drag (C<sub>D</sub>)</label>
+                <span id="val-cd" class="slider-readout">0.98</span>
+              </div>
+              <input type="range" id="param-cd" min="0.20" max="1.40" step="0.02" value="0.98" />
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="param-topspeed">Gearbox Top Speed</label>
+                <span id="val-topspeed" class="slider-readout">360 km/h</span>
+              </div>
+              <input type="range" id="param-topspeed" min="110" max="400" step="5" value="360" />
+            </div>
+
+            <!-- Collapsible Advanced Setup -->
+            <details class="advanced-tuning-details">
+              <summary>Advanced Chassis &amp; Brakes</summary>
+              <div class="advanced-sliders-inner">
+                <div class="slider-control">
+                  <div class="slider-header">
+                    <label for="param-brake">Max Brake Force</label>
+                    <span id="val-brake" class="slider-readout">38,000 N</span>
+                  </div>
+                  <input type="range" id="param-brake" min="2000" max="45000" step="500" value="38000" />
+                </div>
+
+                <div class="slider-control">
+                  <div class="slider-header">
+                    <label for="param-bias">Front Brake Bias</label>
+                    <span id="val-bias" class="slider-readout">54.0%</span>
+                  </div>
+                  <input type="range" id="param-bias" min="45" max="75" step="0.5" value="54" />
+                </div>
+
+                <div class="slider-control">
+                  <div class="slider-header">
+                    <label for="param-cg">CG Height</label>
+                    <span id="val-cg" class="slider-readout">0.25 m</span>
+                  </div>
+                  <input type="range" id="param-cg" min="0.20" max="0.70" step="0.01" value="0.25" />
+                </div>
+
+                <div class="slider-control">
+                  <div class="slider-header">
+                    <label for="param-aggression">Kerb Cut Aggression</label>
+                    <span id="val-aggression" class="slider-readout">55%</span>
+                  </div>
+                  <input type="range" id="param-aggression" min="0" max="100" step="5" value="55" />
+                </div>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <!-- Compact Key Lap Metrics -->
+        <section class="panel-section">
+          <div class="section-header">
+            <span class="section-title">LAP TELEMETRY</span>
+          </div>
+          <div class="stats-mini-grid">
+            <div class="stat-box">
+              <span class="stat-label">TOP SPEED</span>
+              <span id="perf-top-speed" class="stat-val">342 km/h</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">AVG SPEED</span>
+              <span id="perf-avg-speed" class="stat-val">218 km/h</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">PEAK CORNER G</span>
+              <span id="perf-max-lat-g" class="stat-val">4.5 G</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">PEAK DOWNFORCE</span>
+              <span id="perf-max-df" class="stat-val">2,140 kg</span>
+            </div>
+          </div>
+          <div style="display:none">
+            <strong id="perf-min-speed"></strong>
+            <strong id="perf-max-brk-g"></strong>
+            <strong id="perf-full-thr"></strong>
+            <strong id="perf-brk-pct"></strong>
+            <strong id="perf-time-saved"></strong>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Core Application Scripts -->
+  <script src="js/presets.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/optimizer.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
