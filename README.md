@@ -1,4 +1,4 @@
-# APEX // AI (F1Shi)
+# APEX // AI
 
 Interactive 2D circuit designer and racing line optimizer running entirely in the browser. You can build custom tracks using splines and straights, load real circuits (Spa, Monza, Silverstone, Suzuka, Monaco, etc.), tweak car setups, and let the solver calculate minimum lap times, speed traces, and optimal braking/cornering lines.
 
@@ -9,19 +9,7 @@ Built with vanilla JavaScript, HTML5 Canvas, and CSS. No bundlers, external phys
 ## Getting Started
 
 Because there are no dependencies or build steps, you can open `index.html` directly in your browser. 
-
-If your browser restricts local file access for canvas operations, serve the root directory:
-
-```bash
-# Python
-python -m http.server 8000
-
-# Node
-npx serve .
-```
-
-Then visit `http://localhost:8000`.
-
+Alternatively, open: https://wzukay.github.io/ApexAI/
 ---
 
 ## How It Works
